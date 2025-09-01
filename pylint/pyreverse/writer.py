@@ -135,7 +135,19 @@ class DotWriter(DiagramWriter):
             label = r"{}|{}\l|".format(label, r"\l".join(obj.attrs))
             for func in obj.methods:
                 if func.args.args:
-                    args = [arg.name for arg in func.args.args if arg.name != "self"]
+                    args = []
+                    for arg in func.args.args:
+                        if arg.name == "self":
+                            continue
+                        if arg.annotation:
+                            # Get type annotation name
+                            if hasattr(arg.annotation, 'name'):
+                                type_name = arg.annotation.name
+                            else:
+                                type_name = str(arg.annotation)
+                            args.append(f"{arg.name}: {type_name}")
+                        else:
+                            args.append(arg.name)
                 else:
                     args = []
                 label = r"{}{}({})\l".format(label, func.name, ", ".join(args))
@@ -199,7 +211,25 @@ class VCGWriter(DiagramWriter):
             shape = "box"
         if not self.config.only_classnames:
             attrs = obj.attrs
-            methods = [func.name for func in obj.methods]
+            methods = []
+            for func in obj.methods:
+                if func.args.args:
+                    args = []
+                    for arg in func.args.args:
+                        if arg.name == "self":
+                            continue
+                        if arg.annotation:
+                            # Get type annotation name
+                            if hasattr(arg.annotation, 'name'):
+                                type_name = arg.annotation.name
+                            else:
+                                type_name = str(arg.annotation)
+                            args.append(f"{arg.name}: {type_name}")
+                        else:
+                            args.append(arg.name)
+                    methods.append(f"{func.name}({', '.join(args)})")
+                else:
+                    methods.append(f"{func.name}()")
             # box width for UML like diagram
             maxlen = max(len(name) for name in [obj.title] + methods + attrs)
             line = "_" * (maxlen + 2)
@@ -209,7 +239,7 @@ class VCGWriter(DiagramWriter):
             if attrs:
                 label = fr"{label}\n\f{line}"
             for func in methods:
-                label = fr"{label}\n\f10{func}()"
+                label = fr"{label}\n\f10{func}"
         return dict(label=label, shape=shape)
 
     def close_graph(self):
